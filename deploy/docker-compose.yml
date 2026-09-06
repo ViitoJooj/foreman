@@ -1,0 +1,15 @@
+# Runs the API against the hosted Supabase project. No local Postgres: Supabase
+# is hosted, so the container only needs the connection string via env.
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: foreman:latest
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      API_KEY: ${API_KEY:?API_KEY is required}
+      PORT: ${PORT:-8080}
+    ports:
+      - "${PORT:-8080}:8080"
+    restart: unless-stopped
