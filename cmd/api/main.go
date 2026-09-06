@@ -13,9 +13,11 @@ import (
 	"time"
 
 	"github.com/ViitoJooj/foreman/internal/adapters/driven/bus"
+	"github.com/ViitoJooj/foreman/internal/adapters/driven/llm"
 	"github.com/ViitoJooj/foreman/internal/adapters/driven/supabase"
 	"github.com/ViitoJooj/foreman/internal/adapters/driving/http"
 	"github.com/ViitoJooj/foreman/internal/config"
+	"github.com/ViitoJooj/foreman/internal/core/domain"
 	"github.com/ViitoJooj/foreman/internal/core/service"
 	"github.com/ViitoJooj/foreman/internal/orchestrator"
 )
@@ -68,7 +70,7 @@ func run() error {
 			Messages: messages,
 			Bus:      messageBus,
 			Commands: commands,
-			Runners:  orchestrator.StubRunners(),
+			Runners:  selectRunners(cfg, slog.Default()),
 			Budget:   orchestrator.NewBudget(cfg.BudgetHardCapUSD),
 			Interval: cfg.OrchestratorInterval,
 			Logger:   slog.Default(),
@@ -102,4 +104,19 @@ func run() error {
 		defer cancel()
 		return srv.Shutdown(shutdownCtx)
 	}
+}
+
+// selectRunners returns LLM-backed runners when enabled and a provider is
+// configured, otherwise the stub runners.
+func selectRunners(cfg config.Config, logger *slog.Logger) map[domain.AgentRole]orchestrator.AgentRunner {
+	if !cfg.LLMRunnersEnabled {
+		return orchestrator.StubRunners()
+	}
+	router, err := llm.BuildRouter(llm.LoadProviderConfigFromEnv(), logger)
+	if err != nil {
+		logger.Warn("LLM runners requested but no provider configured; using stubs", "err", err)
+		return orchestrator.StubRunners()
+	}
+	logger.Info("using LLM-backed runners", "providers", router.Providers())
+	return orchestrator.LLMRunners(router, logger)
 }

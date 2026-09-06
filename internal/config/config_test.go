@@ -19,6 +19,7 @@ func setEnv(t *testing.T, dsn, key, port string) {
 	t.Setenv("ORCHESTRATOR_ENABLED", "")
 	t.Setenv("ORCHESTRATOR_INTERVAL", "")
 	t.Setenv("BUDGET_HARD_CAP_USD", "")
+	t.Setenv("LLM_RUNNERS_ENABLED", "")
 }
 
 func TestLoadReadsAllValues(t *testing.T) {
@@ -29,6 +30,7 @@ func TestLoadReadsAllValues(t *testing.T) {
 	t.Setenv("ORCHESTRATOR_ENABLED", "true")
 	t.Setenv("ORCHESTRATOR_INTERVAL", "45s")
 	t.Setenv("BUDGET_HARD_CAP_USD", "12.5")
+	t.Setenv("LLM_RUNNERS_ENABLED", "1")
 
 	cfg, err := config.Load()
 	require.NoError(t, err)
@@ -38,6 +40,7 @@ func TestLoadReadsAllValues(t *testing.T) {
 	require.True(t, cfg.OrchestratorEnabled)
 	require.Equal(t, 45*time.Second, cfg.OrchestratorInterval)
 	require.InDelta(t, 12.5, cfg.BudgetHardCapUSD, 1e-9)
+	require.True(t, cfg.LLMRunnersEnabled)
 }
 
 func TestLoadDefaults(t *testing.T) {

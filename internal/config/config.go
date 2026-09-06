@@ -24,6 +24,7 @@ type Config struct {
 	OrchestratorEnabled  bool          // run the orchestrator loop in-process
 	OrchestratorInterval time.Duration // cycle interval; defaults to 30s
 	BudgetHardCapUSD     float64       // orchestrator hard spend cap; 0 disables it
+	LLMRunnersEnabled    bool          // use LLM-backed runners instead of stubs
 }
 
 // Load reads the configuration from the environment. DATABASE_URL and API_KEY are
@@ -61,6 +62,12 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg.BudgetHardCapUSD = hardCap
+
+	llmRunners, err := boolEnv("LLM_RUNNERS_ENABLED", false)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.LLMRunnersEnabled = llmRunners
 
 	return cfg, nil
 }
