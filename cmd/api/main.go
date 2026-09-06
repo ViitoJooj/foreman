@@ -46,6 +46,7 @@ func run() error {
 	channels := supabase.NewChannelRepository(pool)
 	tasks := supabase.NewTaskRepository(pool)
 	messages := supabase.NewMessageRepository(pool)
+	commands := supabase.NewCommandRepository(pool)
 	messageBus := bus.NewInProcess()
 
 	router := http.NewRouter(cfg.APIKey, http.Handlers{
@@ -54,6 +55,7 @@ func run() error {
 		Channels:  http.NewChannelHandler(service.NewChannel(channels)),
 		Tasks:     http.NewTaskHandler(service.NewCreateTask(tasks), service.NewListTasks(tasks)),
 		Messages:  http.NewMessageHandler(service.NewPostMessage(messages, messageBus)),
+		Commands:  http.NewCommandHandler(service.NewCommand(commands)),
 	})
 
 	srv := &nethttp.Server{

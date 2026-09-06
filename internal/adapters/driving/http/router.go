@@ -12,6 +12,7 @@ type Handlers struct {
 	Channels  *ChannelHandler
 	Tasks     *TaskHandler
 	Messages  *MessageHandler
+	Commands  *CommandHandler
 }
 
 // NewRouter builds the API router. Every /api/v1 route is guarded by the
@@ -37,6 +38,10 @@ func NewRouter(apiKey string, h Handlers) *gin.Engine {
 
 	v1.POST("/tasks", h.Tasks.Create)
 	v1.GET("/tasks", h.Tasks.List)
+
+	v1.POST("/commands", h.Commands.Create)
+	v1.GET("/commands", h.Commands.List)
+	v1.GET("/commands/:id", h.Commands.Get)
 
 	return r
 }

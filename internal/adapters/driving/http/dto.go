@@ -86,6 +86,37 @@ func newChannelResponse(ch domain.Channel) channelResponse {
 	}
 }
 
+type issueCommandRequest struct {
+	Kind          string `json:"kind" binding:"required,oneof=kill panic pause resume"`
+	CompanyID     string `json:"company_id" binding:"omitempty,uuid"`
+	TargetAgentID string `json:"target_agent_id" binding:"omitempty,uuid"`
+	Reason        string `json:"reason"`
+}
+
+type commandResponse struct {
+	ID            string     `json:"id"`
+	Kind          string     `json:"kind"`
+	Status        string     `json:"status"`
+	CompanyID     string     `json:"company_id,omitempty"`
+	TargetAgentID string     `json:"target_agent_id,omitempty"`
+	Reason        string     `json:"reason,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	AppliedAt     *time.Time `json:"applied_at,omitempty"`
+}
+
+func newCommandResponse(c domain.Command) commandResponse {
+	return commandResponse{
+		ID:            c.ID.String(),
+		Kind:          string(c.Kind),
+		Status:        string(c.Status),
+		CompanyID:     optionalUUID(c.CompanyID),
+		TargetAgentID: optionalUUID(c.TargetAgentID),
+		Reason:        c.Reason,
+		CreatedAt:     c.CreatedAt,
+		AppliedAt:     c.AppliedAt,
+	}
+}
+
 type createTaskRequest struct {
 	CompanyID   string `json:"company_id" binding:"required,uuid"`
 	Title       string `json:"title" binding:"required"`

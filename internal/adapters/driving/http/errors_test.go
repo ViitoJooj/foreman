@@ -26,6 +26,7 @@ func TestRespondError(t *testing.T) {
 		{"invalid company input", service.ErrInvalidCompanyInput, http.StatusBadRequest},
 		{"invalid agent input", service.ErrInvalidAgentInput, http.StatusBadRequest},
 		{"invalid channel input", service.ErrInvalidChannelInput, http.StatusBadRequest},
+		{"invalid command input", service.ErrInvalidCommandInput, http.StatusBadRequest},
 		{"filter required", service.ErrTaskFilterRequired, http.StatusBadRequest},
 		{"wrapped invalid input", fmt.Errorf("ctx: %w", service.ErrInvalidTaskInput), http.StatusBadRequest},
 		{"task not found", ports.ErrTaskNotFound, http.StatusNotFound},

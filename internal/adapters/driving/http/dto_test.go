@@ -135,6 +135,40 @@ func TestNewChannelResponseMapsFields(t *testing.T) {
 	require.Equal(t, ch.Name, got.Name)
 }
 
+func TestNewCommandResponseMapsFields(t *testing.T) {
+	applied := time.Now()
+	c := domain.Command{
+		ID:            testutil.RandomUUID(),
+		CompanyID:     testutil.RandomUUID(),
+		TargetAgentID: testutil.RandomUUID(),
+		Kind:          domain.CommandPause,
+		Status:        domain.CommandApplied,
+		Reason:        testutil.RandomText(),
+		CreatedAt:     time.Now(),
+		AppliedAt:     &applied,
+	}
+
+	got := newCommandResponse(c)
+
+	require.Equal(t, c.ID.String(), got.ID)
+	require.Equal(t, "pause", got.Kind)
+	require.Equal(t, "applied", got.Status)
+	require.Equal(t, c.CompanyID.String(), got.CompanyID)
+	require.Equal(t, c.TargetAgentID.String(), got.TargetAgentID)
+	require.NotNil(t, got.AppliedAt)
+}
+
+func TestNewCommandResponseOmitsZeroOptionalFields(t *testing.T) {
+	got := newCommandResponse(domain.Command{
+		ID:     testutil.RandomUUID(),
+		Kind:   domain.CommandKill,
+		Status: domain.CommandPending,
+	})
+	require.Empty(t, got.CompanyID)
+	require.Empty(t, got.TargetAgentID)
+	require.Nil(t, got.AppliedAt)
+}
+
 func TestOptionalUUID(t *testing.T) {
 	require.Empty(t, optionalUUID(uuid.UUID{}))
 

@@ -29,6 +29,7 @@ type testAPI struct {
 	taskRepo    *testutil.MockTaskRepository
 	msgRepo     *testutil.MockMessageRepository
 	msgBus      *testutil.MockMessageBus
+	commandRepo *testutil.MockCommandRepository
 }
 
 func newTestAPI(t *testing.T) *testAPI {
@@ -43,6 +44,7 @@ func newTestAPI(t *testing.T) *testAPI {
 		taskRepo:    testutil.NewMockTaskRepository(ctrl),
 		msgRepo:     testutil.NewMockMessageRepository(ctrl),
 		msgBus:      testutil.NewMockMessageBus(ctrl),
+		commandRepo: testutil.NewMockCommandRepository(ctrl),
 	}
 	a.router = NewRouter(a.apiKey, Handlers{
 		Companies: NewCompanyHandler(service.NewCompany(a.companyRepo)),
@@ -50,6 +52,7 @@ func newTestAPI(t *testing.T) *testAPI {
 		Channels:  NewChannelHandler(service.NewChannel(a.channelRepo)),
 		Tasks:     NewTaskHandler(service.NewCreateTask(a.taskRepo), service.NewListTasks(a.taskRepo)),
 		Messages:  NewMessageHandler(service.NewPostMessage(a.msgRepo, a.msgBus)),
+		Commands:  NewCommandHandler(service.NewCommand(a.commandRepo)),
 	})
 	return a
 }
