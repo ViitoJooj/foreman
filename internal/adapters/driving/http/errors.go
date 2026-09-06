@@ -16,6 +16,9 @@ func respondError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, service.ErrInvalidTaskInput),
 		errors.Is(err, service.ErrInvalidMessageInput),
+		errors.Is(err, service.ErrInvalidCompanyInput),
+		errors.Is(err, service.ErrInvalidAgentInput),
+		errors.Is(err, service.ErrInvalidChannelInput),
 		errors.Is(err, service.ErrTaskFilterRequired):
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	case errors.Is(err, ports.ErrTaskNotFound),

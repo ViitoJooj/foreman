@@ -21,11 +21,14 @@ func init() { gin.SetMode(gin.TestMode) }
 // testAPI wires the real router and use cases against mocked ports so tests can
 // drive full HTTP requests while controlling the persistence layer.
 type testAPI struct {
-	router   *gin.Engine
-	apiKey   string
-	taskRepo *testutil.MockTaskRepository
-	msgRepo  *testutil.MockMessageRepository
-	msgBus   *testutil.MockMessageBus
+	router      *gin.Engine
+	apiKey      string
+	companyRepo *testutil.MockCompanyRepository
+	agentRepo   *testutil.MockAgentRepository
+	channelRepo *testutil.MockChannelRepository
+	taskRepo    *testutil.MockTaskRepository
+	msgRepo     *testutil.MockMessageRepository
+	msgBus      *testutil.MockMessageBus
 }
 
 func newTestAPI(t *testing.T) *testAPI {
@@ -33,16 +36,21 @@ func newTestAPI(t *testing.T) *testAPI {
 	ctrl := gomock.NewController(t)
 
 	a := &testAPI{
-		apiKey:   testutil.RandomAPIKey(),
-		taskRepo: testutil.NewMockTaskRepository(ctrl),
-		msgRepo:  testutil.NewMockMessageRepository(ctrl),
-		msgBus:   testutil.NewMockMessageBus(ctrl),
+		apiKey:      testutil.RandomAPIKey(),
+		companyRepo: testutil.NewMockCompanyRepository(ctrl),
+		agentRepo:   testutil.NewMockAgentRepository(ctrl),
+		channelRepo: testutil.NewMockChannelRepository(ctrl),
+		taskRepo:    testutil.NewMockTaskRepository(ctrl),
+		msgRepo:     testutil.NewMockMessageRepository(ctrl),
+		msgBus:      testutil.NewMockMessageBus(ctrl),
 	}
-	a.router = NewRouter(
-		a.apiKey,
-		NewTaskHandler(service.NewCreateTask(a.taskRepo), service.NewListTasks(a.taskRepo)),
-		NewMessageHandler(service.NewPostMessage(a.msgRepo, a.msgBus)),
-	)
+	a.router = NewRouter(a.apiKey, Handlers{
+		Companies: NewCompanyHandler(service.NewCompany(a.companyRepo)),
+		Agents:    NewAgentHandler(service.NewAgent(a.agentRepo)),
+		Channels:  NewChannelHandler(service.NewChannel(a.channelRepo)),
+		Tasks:     NewTaskHandler(service.NewCreateTask(a.taskRepo), service.NewListTasks(a.taskRepo)),
+		Messages:  NewMessageHandler(service.NewPostMessage(a.msgRepo, a.msgBus)),
+	})
 	return a
 }
 

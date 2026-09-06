@@ -20,11 +20,11 @@ func NewMessageHandler(post *service.PostMessage) *MessageHandler {
 	return &MessageHandler{post: post}
 }
 
-// Create handles POST /api/v1/channels/:channelID/messages.
+// Create handles POST /api/v1/channels/:id/messages.
 func (h *MessageHandler) Create(c *gin.Context) {
-	channelID, err := uuid.Parse(c.Param("channelID"))
+	channelID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid channelID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel id"})
 		return
 	}
 

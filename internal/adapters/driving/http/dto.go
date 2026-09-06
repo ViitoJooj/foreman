@@ -8,6 +8,84 @@ import (
 	"github.com/ViitoJooj/foreman/internal/core/domain"
 )
 
+type createCompanyRequest struct {
+	Name      string `json:"name" binding:"required"`
+	Slug      string `json:"slug" binding:"required"`
+	RepoOwner string `json:"repo_owner" binding:"required"`
+	RepoName  string `json:"repo_name" binding:"required"`
+}
+
+type companyResponse struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug"`
+	RepoOwner string    `json:"repo_owner"`
+	RepoName  string    `json:"repo_name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func newCompanyResponse(c domain.Company) companyResponse {
+	return companyResponse{
+		ID:        c.ID.String(),
+		Name:      c.Name,
+		Slug:      c.Slug,
+		RepoOwner: c.RepoOwner,
+		RepoName:  c.RepoName,
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
+	}
+}
+
+type createAgentRequest struct {
+	CompanyID string `json:"company_id" binding:"required,uuid"`
+	Name      string `json:"name" binding:"required"`
+	Role      string `json:"role" binding:"required,oneof=task_creator coder tester pr_reviewer"`
+}
+
+type agentResponse struct {
+	ID        string    `json:"id"`
+	CompanyID string    `json:"company_id"`
+	Name      string    `json:"name"`
+	Role      string    `json:"role"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func newAgentResponse(a domain.Agent) agentResponse {
+	return agentResponse{
+		ID:        a.ID.String(),
+		CompanyID: a.CompanyID.String(),
+		Name:      a.Name,
+		Role:      string(a.Role),
+		Status:    string(a.Status),
+		CreatedAt: a.CreatedAt,
+		UpdatedAt: a.UpdatedAt,
+	}
+}
+
+type createChannelRequest struct {
+	CompanyID string `json:"company_id" binding:"required,uuid"`
+	Name      string `json:"name" binding:"required"`
+}
+
+type channelResponse struct {
+	ID        string    `json:"id"`
+	CompanyID string    `json:"company_id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func newChannelResponse(ch domain.Channel) channelResponse {
+	return channelResponse{
+		ID:        ch.ID.String(),
+		CompanyID: ch.CompanyID.String(),
+		Name:      ch.Name,
+		CreatedAt: ch.CreatedAt,
+	}
+}
+
 type createTaskRequest struct {
 	CompanyID   string `json:"company_id" binding:"required,uuid"`
 	Title       string `json:"title" binding:"required"`

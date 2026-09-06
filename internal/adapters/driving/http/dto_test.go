@@ -81,6 +81,60 @@ func TestNewMessageResponseOmitsZeroOptionalIDs(t *testing.T) {
 	require.Empty(t, got.InReplyTo)
 }
 
+func TestNewCompanyResponseMapsFields(t *testing.T) {
+	c := domain.Company{
+		ID:        testutil.RandomUUID(),
+		Name:      testutil.RandomCompanyName(),
+		Slug:      testutil.RandomSlug(),
+		RepoOwner: testutil.RandomRepoOwner(),
+		RepoName:  testutil.RandomRepoName(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	got := newCompanyResponse(c)
+
+	require.Equal(t, c.ID.String(), got.ID)
+	require.Equal(t, c.Name, got.Name)
+	require.Equal(t, c.Slug, got.Slug)
+	require.Equal(t, c.RepoOwner, got.RepoOwner)
+	require.Equal(t, c.RepoName, got.RepoName)
+}
+
+func TestNewAgentResponseMapsFields(t *testing.T) {
+	a := domain.Agent{
+		ID:        testutil.RandomUUID(),
+		CompanyID: testutil.RandomUUID(),
+		Name:      testutil.RandomAgentName(),
+		Role:      domain.RoleCoder,
+		Status:    domain.AgentWorking,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	got := newAgentResponse(a)
+
+	require.Equal(t, a.ID.String(), got.ID)
+	require.Equal(t, a.CompanyID.String(), got.CompanyID)
+	require.Equal(t, "coder", got.Role)
+	require.Equal(t, "working", got.Status)
+}
+
+func TestNewChannelResponseMapsFields(t *testing.T) {
+	ch := domain.Channel{
+		ID:        testutil.RandomUUID(),
+		CompanyID: testutil.RandomUUID(),
+		Name:      testutil.RandomChannelName(),
+		CreatedAt: time.Now(),
+	}
+
+	got := newChannelResponse(ch)
+
+	require.Equal(t, ch.ID.String(), got.ID)
+	require.Equal(t, ch.CompanyID.String(), got.CompanyID)
+	require.Equal(t, ch.Name, got.Name)
+}
+
 func TestOptionalUUID(t *testing.T) {
 	require.Empty(t, optionalUUID(uuid.UUID{}))
 

@@ -41,15 +41,20 @@ func run() error {
 	}
 	defer pool.Close()
 
+	companies := supabase.NewCompanyRepository(pool)
+	agents := supabase.NewAgentRepository(pool)
+	channels := supabase.NewChannelRepository(pool)
 	tasks := supabase.NewTaskRepository(pool)
 	messages := supabase.NewMessageRepository(pool)
 	messageBus := bus.NewInProcess()
 
-	router := http.NewRouter(
-		cfg.APIKey,
-		http.NewTaskHandler(service.NewCreateTask(tasks), service.NewListTasks(tasks)),
-		http.NewMessageHandler(service.NewPostMessage(messages, messageBus)),
-	)
+	router := http.NewRouter(cfg.APIKey, http.Handlers{
+		Companies: http.NewCompanyHandler(service.NewCompany(companies)),
+		Agents:    http.NewAgentHandler(service.NewAgent(agents)),
+		Channels:  http.NewChannelHandler(service.NewChannel(channels)),
+		Tasks:     http.NewTaskHandler(service.NewCreateTask(tasks), service.NewListTasks(tasks)),
+		Messages:  http.NewMessageHandler(service.NewPostMessage(messages, messageBus)),
+	})
 
 	srv := &nethttp.Server{
 		Addr:              ":" + cfg.Port,
