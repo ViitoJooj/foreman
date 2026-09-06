@@ -136,6 +136,26 @@ type channelView struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// issueCommandBody is the JSON payload for POST /api/v1/commands.
+type issueCommandBody struct {
+	Kind          string `json:"kind"`
+	CompanyID     string `json:"company_id,omitempty"`
+	TargetAgentID string `json:"target_agent_id,omitempty"`
+	Reason        string `json:"reason,omitempty"`
+}
+
+// commandView mirrors the command JSON returned by the API.
+type commandView struct {
+	ID            string     `json:"id"`
+	Kind          string     `json:"kind"`
+	Status        string     `json:"status"`
+	CompanyID     string     `json:"company_id"`
+	TargetAgentID string     `json:"target_agent_id"`
+	Reason        string     `json:"reason"`
+	CreatedAt     time.Time  `json:"created_at"`
+	AppliedAt     *time.Time `json:"applied_at"`
+}
+
 // createTaskBody is the JSON payload for POST /api/v1/tasks.
 type createTaskBody struct {
 	CompanyID   string `json:"company_id"`

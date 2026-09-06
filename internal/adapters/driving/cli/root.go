@@ -41,6 +41,10 @@ func NewRootCmd() *cobra.Command {
 		newChannelCmd(g),
 		newTaskCmd(g),
 		newMessageCmd(g),
+		newCommandCmd(g),
+		newKillCmd(g),
+		newPauseCmd(g),
+		newResumeCmd(g),
 	)
 	return root
 }
