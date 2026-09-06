@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -70,6 +71,31 @@ func TestChannelGetCommand(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, out, id)
 	require.Contains(t, out, "general")
+}
+
+func TestChannelTailCommand(t *testing.T) {
+	key := testutil.RandomAPIKey()
+	channel := testutil.RandomUUID().String()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/api/v1/channels/"+channel+"/messages/stream", r.URL.Path)
+		require.Equal(t, "5", r.URL.Query().Get("history"))
+		require.Equal(t, key, r.Header.Get("X-Api-Key"))
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, "data: {\"type\":\"status\",\"body\":\"hello\",\"created_at\":\"2026-09-06T12:00:00Z\"}\n\n")
+		fmt.Fprint(w, "data: {\"type\":\"request\",\"body\":\"world\",\"created_at\":\"2026-09-06T12:00:01Z\"}\n\n")
+	}))
+	defer srv.Close()
+
+	out, err := executeRoot(t, "channel", "tail",
+		"--channel", channel, "--history", "5",
+		"--api-url", srv.URL, "--api-key", key)
+
+	require.NoError(t, err)
+	require.Contains(t, out, "hello")
+	require.Contains(t, out, "world")
+	require.Contains(t, out, "status")
 }
 
 func TestPrintChannelTable(t *testing.T) {

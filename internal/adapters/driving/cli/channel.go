@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,7 +12,7 @@ import (
 
 func newChannelCmd(g *globalFlags) *cobra.Command {
 	cmd := &cobra.Command{Use: "channel", Short: "Manage channels"}
-	cmd.AddCommand(newChannelCreateCmd(g), newChannelListCmd(g), newChannelGetCmd(g))
+	cmd.AddCommand(newChannelCreateCmd(g), newChannelListCmd(g), newChannelGetCmd(g), newChannelTailCmd(g))
 	return cmd
 }
 
@@ -95,6 +96,45 @@ func newChannelGetCmd(g *globalFlags) *cobra.Command {
 			})
 		},
 	}
+}
+
+func newChannelTailCmd(g *globalFlags) *cobra.Command {
+	var (
+		channel string
+		history int
+	)
+
+	cmd := &cobra.Command{
+		Use:   "tail",
+		Short: "Follow a channel's messages in real time",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := g.client()
+			if err != nil {
+				return err
+			}
+
+			path := fmt.Sprintf("/api/v1/channels/%s/messages/stream?history=%d",
+				url.PathEscape(channel), history)
+			return client.stream(cmd.Context(), path, func(data []byte) error {
+				printTailLine(cmd, data)
+				return nil
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&channel, "channel", "", "channel id (required)")
+	cmd.Flags().IntVar(&history, "history", 20, "backlog messages to print before the live feed")
+	_ = cmd.MarkFlagRequired("channel")
+	return cmd
+}
+
+func printTailLine(cmd *cobra.Command, data []byte) {
+	var m messageView
+	if err := json.Unmarshal(data, &m); err != nil {
+		fmt.Fprintf(cmd.OutOrStdout(), "%s\n", data)
+		return
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "%s  %-8s %s\n", m.CreatedAt.Format("15:04:05"), m.Type, m.Body)
 }
 
 func printChannelTable(cmd *cobra.Command, channels []channelView) {

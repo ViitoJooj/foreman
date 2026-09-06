@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -68,6 +69,52 @@ func (c *apiClient) do(ctx context.Context, method, path string, body, out any) 
 		if err := json.Unmarshal(data, out); err != nil {
 			return fmt.Errorf("decoding response: %w", err)
 		}
+	}
+	return nil
+}
+
+// stream opens a Server-Sent Events connection and calls onData for each event's
+// data payload until ctx is cancelled or the server closes the stream.
+func (c *apiClient) stream(ctx context.Context, path string, onData func([]byte) error) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
+	if err != nil {
+		return fmt.Errorf("building request: %w", err)
+	}
+	req.Header.Set("X-Api-Key", c.apiKey)
+	req.Header.Set("Accept", "text/event-stream")
+
+	// A dedicated client with no timeout: the stream is long-lived and ctx owns it.
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return fmt.Errorf("calling %s: %w", c.baseURL, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(apiErrorMessage(resp.Status, data))
+	}
+
+	sc := bufio.NewScanner(resp.Body)
+	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	var payload []byte
+	for sc.Scan() {
+		line := sc.Bytes()
+		if len(line) == 0 {
+			if len(payload) > 0 {
+				if err := onData(payload); err != nil {
+					return err
+				}
+				payload = payload[:0]
+			}
+			continue
+		}
+		if rest, ok := bytes.CutPrefix(line, []byte("data:")); ok {
+			payload = append(payload, bytes.TrimPrefix(rest, []byte(" "))...)
+		}
+	}
+	if err := sc.Err(); err != nil && ctx.Err() == nil {
+		return fmt.Errorf("reading stream: %w", err)
 	}
 	return nil
 }
