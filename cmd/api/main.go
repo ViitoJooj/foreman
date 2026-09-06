@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"log/slog"
 	nethttp "net/http"
 	"os"
 	"os/signal"
@@ -16,6 +17,7 @@ import (
 	"github.com/ViitoJooj/foreman/internal/adapters/driving/http"
 	"github.com/ViitoJooj/foreman/internal/config"
 	"github.com/ViitoJooj/foreman/internal/core/service"
+	"github.com/ViitoJooj/foreman/internal/orchestrator"
 )
 
 const shutdownTimeout = 10 * time.Second
@@ -57,6 +59,26 @@ func run() error {
 		Messages:  http.NewMessageHandler(service.NewPostMessage(messages, messageBus)),
 		Commands:  http.NewCommandHandler(service.NewCommand(commands)),
 	})
+
+	if cfg.OrchestratorEnabled {
+		orch := orchestrator.New(orchestrator.Deps{
+			Tasks:    tasks,
+			Agents:   agents,
+			Channels: channels,
+			Messages: messages,
+			Bus:      messageBus,
+			Commands: commands,
+			Runners:  orchestrator.StubRunners(),
+			Budget:   orchestrator.NewBudget(cfg.BudgetHardCapUSD),
+			Interval: cfg.OrchestratorInterval,
+			Logger:   slog.Default(),
+		})
+		go func() {
+			if err := orch.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				log.Printf("orchestrator: %v", err)
+			}
+		}()
+	}
 
 	srv := &nethttp.Server{
 		Addr:              ":" + cfg.Port,

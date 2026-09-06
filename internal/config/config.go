@@ -4,20 +4,30 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"strconv"
+	"time"
 )
 
-const defaultPort = "8080"
+const (
+	defaultPort                 = "8080"
+	defaultOrchestratorInterval = 30 * time.Second
+)
 
 // Config holds the settings the API server needs to start.
 type Config struct {
 	DatabaseURL string // Postgres/Supabase connection string
 	APIKey      string // shared secret expected in the X-Api-Key header
 	Port        string // TCP port the HTTP server listens on
+
+	OrchestratorEnabled  bool          // run the orchestrator loop in-process
+	OrchestratorInterval time.Duration // cycle interval; defaults to 30s
+	BudgetHardCapUSD     float64       // orchestrator hard spend cap; 0 disables it
 }
 
 // Load reads the configuration from the environment. DATABASE_URL and API_KEY are
-// required; PORT defaults to 8080 when unset.
+// required; every other value has a default.
 func Load() (Config, error) {
 	cfg := Config{
 		DatabaseURL: os.Getenv("DATABASE_URL"),
@@ -33,5 +43,63 @@ func Load() (Config, error) {
 	if cfg.Port == "" {
 		cfg.Port = defaultPort
 	}
+
+	enabled, err := boolEnv("ORCHESTRATOR_ENABLED", false)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.OrchestratorEnabled = enabled
+
+	interval, err := durationEnv("ORCHESTRATOR_INTERVAL", defaultOrchestratorInterval)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.OrchestratorInterval = interval
+
+	hardCap, err := floatEnv("BUDGET_HARD_CAP_USD", 0)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.BudgetHardCapUSD = hardCap
+
 	return cfg, nil
+}
+
+func boolEnv(key string, fallback bool) (bool, error) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return fallback, nil
+	}
+	v, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, fmt.Errorf("config: %s must be a boolean: %w", key, err)
+	}
+	return v, nil
+}
+
+func durationEnv(key string, fallback time.Duration) (time.Duration, error) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return fallback, nil
+	}
+	v, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, fmt.Errorf("config: %s must be a duration: %w", key, err)
+	}
+	if v <= 0 {
+		return 0, fmt.Errorf("config: %s must be positive", key)
+	}
+	return v, nil
+}
+
+func floatEnv(key string, fallback float64) (float64, error) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return fallback, nil
+	}
+	v, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return 0, fmt.Errorf("config: %s must be a number: %w", key, err)
+	}
+	return v, nil
 }
