@@ -102,6 +102,31 @@ All under `/api/v1`, guarded by the `X-Api-Key` header.
 | `GET /commands?status=<status>` | `command list` |
 | `GET /commands/:id` | `command get <id>` |
 
+## Orchestrator
+
+The orchestrator runs as a goroutine inside the API process. Enable it with
+environment variables before `make run-api`:
+
+```bash
+export ORCHESTRATOR_ENABLED=true
+export ORCHESTRATOR_INTERVAL=5s       # cycle interval (default 30s)
+export BUDGET_HARD_CAP_USD=0          # 0 disables the spend guard
+```
+
+Each cycle it: applies pending commands (see below), then advances every task in
+an actionable state one step, posting a `status` message to the company channel
+on each transition and honouring `pause`/`kill`.
+
+The runners are **stubs** for now — every step reports success, so a `low` risk
+task walks `queued -> coding -> testing -> reviewing -> merged` on its own, and a
+`medium`/`high` risk task stops at `needs_human`. Real LLM-backed runners come
+later.
+
+> A task created via `task create` starts in `created`, which the pipeline does
+> not pick up (that is the Task Creator's stage). Until the Task Creator runner
+> exists, move it into the queue manually:
+> `UPDATE tasks SET state = 'queued' WHERE id = '<TASK_ID>';`
+
 ## Control actions (kill switch)
 
 Issuing a command only **records** it as `pending`; the orchestrator (future
