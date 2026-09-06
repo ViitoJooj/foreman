@@ -116,6 +116,19 @@ func TestNextRejectsInvalidTransitions(t *testing.T) {
 	}
 }
 
+func TestAllowedOutcomes(t *testing.T) {
+	// Every allowed outcome must produce a legal transition via Next.
+	for _, state := range orchestrator.ActionableStates() {
+		allowed := orchestrator.AllowedOutcomes(state)
+		require.NotEmpty(t, allowed, "state %q has no allowed outcomes", state)
+		for _, oc := range allowed {
+			_, err := orchestrator.Next(task(state, domain.RiskLow), oc)
+			require.NoError(t, err, "state %q outcome %q should be legal", state, oc)
+		}
+	}
+	require.Nil(t, orchestrator.AllowedOutcomes(domain.TaskMerged))
+}
+
 func TestActionableStatesIsACopy(t *testing.T) {
 	a := orchestrator.ActionableStates()
 	a[0] = domain.TaskMerged

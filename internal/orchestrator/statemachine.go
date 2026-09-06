@@ -40,6 +40,25 @@ func ActionableStates() []domain.TaskState {
 	return append([]domain.TaskState(nil), actionableStates...)
 }
 
+// AllowedOutcomes lists the outcomes a runner may legally report for a task in
+// the given state. It is used to constrain an LLM runner's response.
+func AllowedOutcomes(state domain.TaskState) []Outcome {
+	switch state {
+	case domain.TaskQueued:
+		return []Outcome{OutcomeAdvance, OutcomeNeedsHuman}
+	case domain.TaskCoding:
+		return []Outcome{OutcomeAdvance, OutcomeBuildFailed, OutcomeNeedsHuman}
+	case domain.TaskTesting:
+		return []Outcome{OutcomeAdvance, OutcomeTestFailed, OutcomeNeedsHuman}
+	case domain.TaskReviewing:
+		return []Outcome{OutcomeAdvance, OutcomeRejected, OutcomeNeedsHuman}
+	case domain.TaskFailedBuild, domain.TaskFailedTest:
+		return []Outcome{OutcomeAdvance, OutcomeNeedsHuman}
+	default:
+		return nil
+	}
+}
+
 // Next returns the task after a runner step: the new state, and an incremented
 // retry count when a failed build/test is retried. It is a pure function.
 func Next(task domain.Task, outcome Outcome) (domain.Task, error) {
