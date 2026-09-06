@@ -58,7 +58,7 @@ func (c *apiClient) do(ctx context.Context, method, path string, body, out any) 
 	if err != nil {
 		return fmt.Errorf("calling %s: %w", c.baseURL, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	data, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

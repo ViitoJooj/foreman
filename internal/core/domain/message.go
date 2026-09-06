@@ -9,6 +9,7 @@ import (
 // MessageType is the protocol envelope kind exchanged between agents.
 type MessageType string
 
+// The protocol envelope kinds.
 const (
 	MessageRequest  MessageType = "request"
 	MessageResponse MessageType = "response"

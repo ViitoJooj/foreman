@@ -12,6 +12,7 @@ import (
 //	                                    └── failed_build / failed_test (retry up to MaxRetries) ──┘
 type TaskState string
 
+// The nodes of the task lifecycle.
 const (
 	TaskCreated     TaskState = "created"
 	TaskResearching TaskState = "researching"
@@ -29,6 +30,7 @@ const (
 // RiskLevel drives the auto-merge decision: only low-risk tasks may auto-merge.
 type RiskLevel string
 
+// The task risk levels.
 const (
 	RiskLow    RiskLevel = "low"
 	RiskMedium RiskLevel = "medium"

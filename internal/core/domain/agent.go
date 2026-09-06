@@ -8,6 +8,7 @@ import (
 // AgentRole identifies which of the four pipeline roles an agent fills.
 type AgentRole string
 
+// The four pipeline roles.
 const (
 	RoleTaskCreator AgentRole = "task_creator"
 	RoleCoder       AgentRole = "coder"
@@ -18,6 +19,7 @@ const (
 // AgentStatus is the current working state of an agent, as shown on the TUI.
 type AgentStatus string
 
+// The states an agent can be in.
 const (
 	AgentIdle    AgentStatus = "idle"
 	AgentWorking AgentStatus = "working"

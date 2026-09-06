@@ -8,6 +8,7 @@ import (
 // CommandKind is a control action issued by the human operator against the harness.
 type CommandKind string
 
+// The control actions the operator can issue.
 const (
 	CommandKill   CommandKind = "kill"   // graceful stop: agents stop taking new tasks
 	CommandPanic  CommandKind = "panic"  // kill, then close agent PRs and delete their branches
@@ -18,6 +19,7 @@ const (
 // CommandStatus tracks whether a control command has been applied yet.
 type CommandStatus string
 
+// The lifecycle of a control command.
 const (
 	CommandPending CommandStatus = "pending"
 	CommandApplied CommandStatus = "applied"
