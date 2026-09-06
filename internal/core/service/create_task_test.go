@@ -44,7 +44,7 @@ func TestCreateTaskExecutePersistsCreatedTask(t *testing.T) {
 	require.Equal(t, in.Title, got.Title)
 	require.Equal(t, in.Description, got.Description)
 	require.Equal(t, in.Risk, got.Risk)
-	require.Equal(t, domain.TaskCreated, got.State)
+	require.Equal(t, domain.TaskQueued, got.State)
 	require.Equal(t, 3, got.MaxRetries, "non-positive max retries falls back to the default")
 	require.NotEqual(t, (domain.Task{}).ID, out.ID)
 }

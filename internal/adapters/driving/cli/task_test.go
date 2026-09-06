@@ -25,7 +25,7 @@ func TestTaskCreateCommand(t *testing.T) {
 		require.Equal(t, key, r.Header.Get("X-Api-Key"))
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
 		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(map[string]any{"id": testutil.RandomUUID().String(), "state": "created"})
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": testutil.RandomUUID().String(), "state": "queued"})
 	}))
 	defer srv.Close()
 

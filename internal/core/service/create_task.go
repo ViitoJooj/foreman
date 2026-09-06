@@ -54,11 +54,15 @@ func (uc *CreateTask) Execute(ctx context.Context, in CreateTaskInput) (domain.T
 		maxRetries = defaultMaxRetries
 	}
 
+	// A task added through the API/CLI is a human-authored work item that is
+	// already specified, so it enters the pipeline queue directly. The
+	// created -> researching -> queued states are reserved for the autonomous
+	// Task Creator, which is not wired yet.
 	return uc.tasks.Create(ctx, domain.Task{
 		CompanyID:   in.CompanyID,
 		Title:       in.Title,
 		Description: in.Description,
-		State:       domain.TaskCreated,
+		State:       domain.TaskQueued,
 		Risk:        in.Risk,
 		MaxRetries:  maxRetries,
 	})

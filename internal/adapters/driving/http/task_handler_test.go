@@ -23,7 +23,7 @@ func TestTaskHandlerCreate(t *testing.T) {
 		func(_ context.Context, task domain.Task) (domain.Task, error) {
 			require.Equal(t, companyID, task.CompanyID)
 			require.Equal(t, title, task.Title)
-			require.Equal(t, domain.TaskCreated, task.State)
+			require.Equal(t, domain.TaskQueued, task.State)
 			task.ID = testutil.RandomUUID()
 			task.CreatedAt = time.Now()
 			task.UpdatedAt = task.CreatedAt
@@ -40,7 +40,7 @@ func TestTaskHandlerCreate(t *testing.T) {
 	var resp map[string]any
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	require.Equal(t, companyID.String(), resp["company_id"])
-	require.Equal(t, "created", resp["state"])
+	require.Equal(t, "queued", resp["state"])
 }
 
 func TestTaskHandlerCreateRejectsMalformedBody(t *testing.T) {
