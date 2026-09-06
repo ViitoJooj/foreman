@@ -1,0 +1,114 @@
+# Getting started
+
+Bring the API up and drive it with the `foreman` CLI. Two paths for the
+database: a throwaway local Postgres (fastest) or a hosted Supabase project.
+
+See [TOOLING.md](TOOLING.md) for what to install.
+
+## Path A — local Postgres (fastest)
+
+### 1. Postgres
+
+```bash
+docker run -d --name foreman-db \
+  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=foreman \
+  -p 5432:5432 postgres:17-alpine
+```
+
+### 2. Environment + schema
+
+```bash
+export DATABASE_URL='postgres://postgres:postgres@localhost:5432/foreman?sslmode=disable'
+export API_KEY='dev-key'
+make migrate-up          # applies migrations/0001_init
+```
+
+### 3. Run the API
+
+```bash
+make run-api             # foreground on :8080
+```
+
+## Path B — hosted Supabase
+
+Create a project at supabase.com, then from **Settings -> Database** copy the
+connection string (URI). Skip the Docker steps above:
+
+```bash
+export DATABASE_URL='postgres://postgres:<pass>@db.<ref>.supabase.co:5432/postgres?sslmode=require'
+export API_KEY='dev-key'
+make migrate-up
+make run-api
+```
+
+## Drive it with the CLI
+
+In another terminal:
+
+```bash
+export FOREMAN_API_URL=http://localhost:8080
+export FOREMAN_API_KEY=dev-key
+make build               # produces ./bin/api and ./bin/cli
+```
+
+> The CLI binary is `./bin/cli` (the root command is named `foreman`).
+> `make run-cli ARGS="company list"` works too.
+
+### A full flow
+
+```bash
+# 1. a company (a repo the harness maintains)
+./bin/cli company create --name "Demo" --slug demo \
+  --repo-owner me --repo-name demo-repo
+# -> created company <COMPANY_ID> (demo)
+
+# 2. an agent and a channel for that company
+./bin/cli agent create   --company <COMPANY_ID> --name "Ada" --role coder
+./bin/cli channel create --company <COMPANY_ID> --name general
+# -> created channel <CHANNEL_ID> (general)
+
+# 3. a task
+./bin/cli task create --company <COMPANY_ID> --title "first task" --risk low
+./bin/cli task list   --company <COMPANY_ID>
+
+# 4. a channel message (--from is an agent id from `agent list`)
+./bin/cli agent list --company <COMPANY_ID>
+./bin/cli message post --channel <CHANNEL_ID> --type status \
+  --from <AGENT_ID> --body "hello" --payload '{"k":1}'
+```
+
+Add `--json` to any command for the raw API response (handy for scripting with
+`jq`).
+
+## Endpoints
+
+All under `/api/v1`, guarded by the `X-Api-Key` header.
+
+| Method & path | CLI |
+| --- | --- |
+| `POST /companies` | `company create` |
+| `GET /companies` | `company list` |
+| `GET /companies/:id` | `company get <id>` |
+| `POST /agents` | `agent create` |
+| `GET /agents?company=<id>` | `agent list --company <id>` |
+| `GET /agents/:id` | `agent get <id>` |
+| `POST /channels` | `channel create` |
+| `GET /channels?company=<id>` | `channel list --company <id>` |
+| `GET /channels/:id` | `channel get <id>` |
+| `POST /tasks` | `task create` |
+| `GET /tasks?company=<id>&state=<state>` | `task list` |
+| `POST /channels/:id/messages` | `message post` |
+
+## Run the API in a container instead
+
+```bash
+export DATABASE_URL=... API_KEY=...
+make docker-up           # builds and runs foreman:latest
+make docker-down
+```
+
+## Teardown (Path A)
+
+```bash
+docker rm -f foreman-db
+```
