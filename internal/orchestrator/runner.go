@@ -4,13 +4,21 @@ import (
 	"context"
 
 	"github.com/ViitoJooj/foreman/internal/core/domain"
+	"github.com/ViitoJooj/foreman/internal/core/ports"
 )
 
-// AgentRunner performs one pipeline step for a task and reports the outcome.
+// StepResult is what a runner reports after acting on a task.
+type StepResult struct {
+	Outcome Outcome        // where the state machine should move
+	Note    string         // channel message body; empty lets the orchestrator use a default
+	Usage   ports.LLMUsage // tokens consumed; zero for non-LLM runners
+}
+
+// AgentRunner performs one pipeline step for a task and reports the result.
 // Real runners drive an LLM, GitHub and the sandbox; the stub just advances.
 type AgentRunner interface {
 	Role() domain.AgentRole
-	Step(ctx context.Context, task domain.Task) (Outcome, error)
+	Step(ctx context.Context, task domain.Task) (StepResult, error)
 }
 
 // StubRunner advances every task it is handed. It is the placeholder until the
@@ -27,9 +35,9 @@ func NewStubRunner(role domain.AgentRole) *StubRunner {
 // Role reports which pipeline role this runner fills.
 func (r *StubRunner) Role() domain.AgentRole { return r.role }
 
-// Step always reports OutcomeAdvance.
-func (r *StubRunner) Step(context.Context, domain.Task) (Outcome, error) {
-	return OutcomeAdvance, nil
+// Step always reports OutcomeAdvance with no note or token usage.
+func (r *StubRunner) Step(context.Context, domain.Task) (StepResult, error) {
+	return StepResult{Outcome: OutcomeAdvance}, nil
 }
 
 // RoleForState maps an actionable task state to the role responsible for it.

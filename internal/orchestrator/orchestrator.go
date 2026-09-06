@@ -161,12 +161,13 @@ func (o *Orchestrator) advance(ctx context.Context, task domain.Task) error {
 		return nil
 	}
 
-	outcome, err := runner.Step(ctx, task)
+	result, err := runner.Step(ctx, task)
 	if err != nil {
 		return fmt.Errorf("runner step: %w", err)
 	}
+	o.deps.Budget.RecordTokens(result.Usage.InputTokens, result.Usage.OutputTokens)
 
-	next, err := Next(task, outcome)
+	next, err := Next(task, result.Outcome)
 	if err != nil {
 		return err
 	}
@@ -177,7 +178,7 @@ func (o *Orchestrator) advance(ctx context.Context, task domain.Task) error {
 		return fmt.Errorf("persist task: %w", err)
 	}
 
-	o.postTransition(ctx, saved, agent, task.State, outcome)
+	o.postTransition(ctx, saved, agent, task.State, result)
 	return nil
 }
 
@@ -194,7 +195,7 @@ func (o *Orchestrator) agentFor(ctx context.Context, companyID uuid.UUID, role d
 	return domain.Agent{}, fmt.Errorf("company %s has no %s agent", companyID, role)
 }
 
-func (o *Orchestrator) postTransition(ctx context.Context, task domain.Task, agent domain.Agent, from domain.TaskState, outcome Outcome) {
+func (o *Orchestrator) postTransition(ctx context.Context, task domain.Task, agent domain.Agent, from domain.TaskState, result StepResult) {
 	channels, err := o.deps.Channels.ListByCompany(ctx, task.CompanyID)
 	if err != nil || len(channels) == 0 {
 		o.deps.Logger.Warn("no channel for status message", "company_id", task.CompanyID, "err", err)
@@ -202,17 +203,24 @@ func (o *Orchestrator) postTransition(ctx context.Context, task domain.Task, age
 	}
 
 	payload, _ := json.Marshal(map[string]any{
-		"task_id": task.ID.String(),
-		"from":    from,
-		"to":      task.State,
-		"outcome": outcome,
+		"task_id":       task.ID.String(),
+		"from":          from,
+		"to":            task.State,
+		"outcome":       result.Outcome,
+		"input_tokens":  result.Usage.InputTokens,
+		"output_tokens": result.Usage.OutputTokens,
 	})
+
+	body := result.Note
+	if body == "" {
+		body = fmt.Sprintf("%s: %s -> %s", agent.Name, from, task.State)
+	}
 
 	msg, err := o.deps.Messages.Create(ctx, domain.Message{
 		ChannelID:   channels[0].ID,
 		Type:        domain.MessageStatus,
 		FromAgentID: agent.ID,
-		Body:        fmt.Sprintf("%s: %s -> %s", agent.Name, from, task.State),
+		Body:        body,
 		Payload:     payload,
 	})
 	if err != nil {

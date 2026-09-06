@@ -11,19 +11,24 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/ViitoJooj/foreman/internal/core/domain"
+	"github.com/ViitoJooj/foreman/internal/core/ports"
 	"github.com/ViitoJooj/foreman/internal/orchestrator"
 	"github.com/ViitoJooj/foreman/internal/testutil"
 )
 
 type funcRunner struct {
 	role domain.AgentRole
-	fn   func(domain.Task) (orchestrator.Outcome, error)
+	fn   func(domain.Task) (orchestrator.StepResult, error)
 }
 
 func (r funcRunner) Role() domain.AgentRole { return r.role }
 
-func (r funcRunner) Step(_ context.Context, t domain.Task) (orchestrator.Outcome, error) {
+func (r funcRunner) Step(_ context.Context, t domain.Task) (orchestrator.StepResult, error) {
 	return r.fn(t)
+}
+
+func advance(domain.Task) (orchestrator.StepResult, error) {
+	return orchestrator.StepResult{Outcome: orchestrator.OutcomeAdvance}, nil
 }
 
 type orchFixture struct {
@@ -64,11 +69,10 @@ func newFixture(t *testing.T, runners map[domain.AgentRole]orchestrator.AgentRun
 }
 
 func advancingRunners() map[domain.AgentRole]orchestrator.AgentRunner {
-	adv := func(domain.Task) (orchestrator.Outcome, error) { return orchestrator.OutcomeAdvance, nil }
 	return map[domain.AgentRole]orchestrator.AgentRunner{
-		domain.RoleCoder:      funcRunner{domain.RoleCoder, adv},
-		domain.RoleTester:     funcRunner{domain.RoleTester, adv},
-		domain.RolePRReviewer: funcRunner{domain.RolePRReviewer, adv},
+		domain.RoleCoder:      funcRunner{domain.RoleCoder, advance},
+		domain.RoleTester:     funcRunner{domain.RoleTester, advance},
+		domain.RolePRReviewer: funcRunner{domain.RolePRReviewer, advance},
 	}
 }
 
@@ -117,6 +121,41 @@ func TestCycleAdvancesQueuedTask(t *testing.T) {
 	require.NoError(t, f.orch.Cycle(context.Background()))
 	require.Equal(t, domain.TaskCoding, saved.State)
 	require.Equal(t, coder.ID, saved.AssigneeID)
+}
+
+func TestCycleUsesRunnerNoteAndRecordsTokens(t *testing.T) {
+	companyID := testutil.RandomUUID()
+	coder := domain.Agent{ID: testutil.RandomUUID(), CompanyID: companyID, Name: "Ada", Role: domain.RoleCoder}
+	queued := domain.Task{ID: testutil.RandomUUID(), CompanyID: companyID, State: domain.TaskQueued, Risk: domain.RiskLow, MaxRetries: 3}
+
+	runners := map[domain.AgentRole]orchestrator.AgentRunner{
+		domain.RoleCoder: funcRunner{domain.RoleCoder, func(domain.Task) (orchestrator.StepResult, error) {
+			return orchestrator.StepResult{
+				Outcome: orchestrator.OutcomeAdvance,
+				Note:    "branch pushed, build green",
+				Usage:   ports.LLMUsage{InputTokens: 500_000, OutputTokens: 500_000},
+			}, nil
+		}},
+	}
+	budget := orchestrator.NewBudget(0)
+	f := newFixture(t, runners, budget)
+
+	f.expectNoPendingCommands()
+	f.expectTasksByState(map[domain.TaskState][]domain.Task{domain.TaskQueued: {queued}})
+	f.agents.EXPECT().ListByCompany(gomock.Any(), companyID).Return([]domain.Agent{coder}, nil)
+	f.tasks.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, tk domain.Task) (domain.Task, error) { return tk, nil })
+	f.channels.EXPECT().ListByCompany(gomock.Any(), companyID).Return([]domain.Channel{{ID: testutil.RandomUUID()}}, nil)
+	f.messages.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, m domain.Message) (domain.Message, error) {
+			require.Equal(t, "branch pushed, build green", m.Body)
+			m.ID = testutil.RandomUUID()
+			return m, nil
+		})
+	f.bus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
+
+	require.NoError(t, f.orch.Cycle(context.Background()))
+	require.InDelta(t, 6.0, budget.SpentUSD(), 1e-9)
 }
 
 func TestCycleKillSwitchStopsAdvancement(t *testing.T) {
@@ -179,8 +218,8 @@ func TestCycleMissingRoleAgentDoesNotUpdate(t *testing.T) {
 
 func TestCycleBuildFailureMovesTaskToFailedBuild(t *testing.T) {
 	buildFails := map[domain.AgentRole]orchestrator.AgentRunner{
-		domain.RoleCoder: funcRunner{domain.RoleCoder, func(domain.Task) (orchestrator.Outcome, error) {
-			return orchestrator.OutcomeBuildFailed, nil
+		domain.RoleCoder: funcRunner{domain.RoleCoder, func(domain.Task) (orchestrator.StepResult, error) {
+			return orchestrator.StepResult{Outcome: orchestrator.OutcomeBuildFailed, Note: "build broke"}, nil
 		}},
 	}
 	f := newFixture(t, buildFails, nil)

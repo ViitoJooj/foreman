@@ -38,9 +38,11 @@ func TestStubRunnerAdvances(t *testing.T) {
 	r := orchestrator.NewStubRunner(domain.RoleCoder)
 	require.Equal(t, domain.RoleCoder, r.Role())
 
-	outcome, err := r.Step(context.Background(), domain.Task{})
+	res, err := r.Step(context.Background(), domain.Task{})
 	require.NoError(t, err)
-	require.Equal(t, orchestrator.OutcomeAdvance, outcome)
+	require.Equal(t, orchestrator.OutcomeAdvance, res.Outcome)
+	require.Empty(t, res.Note)
+	require.Zero(t, res.Usage.InputTokens)
 }
 
 func TestStubRunnersCoverEveryActionableRole(t *testing.T) {

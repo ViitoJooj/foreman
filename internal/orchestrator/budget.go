@@ -2,8 +2,12 @@ package orchestrator
 
 import "sync"
 
-// Budget is the token/spend guard. It is a hook: nothing records spend until the
-// LLM layer lands, so with a non-positive cap it always allows work.
+// defaultUSDPerMTok is a blended cost estimate ($/million tokens) used to turn
+// token usage into spend. It is deliberately rough; a per-model pricing table
+// can replace it later.
+const defaultUSDPerMTok = 6.0
+
+// Budget is the token/spend guard. With a non-positive cap it always allows work.
 type Budget struct {
 	mu         sync.Mutex
 	hardCapUSD float64
@@ -31,6 +35,15 @@ func (b *Budget) Record(usd float64) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.spentUSD += usd
+}
+
+// RecordTokens converts a token count into spend using the blended rate and adds
+// it to the running total.
+func (b *Budget) RecordTokens(inputTokens, outputTokens int) {
+	if inputTokens <= 0 && outputTokens <= 0 {
+		return
+	}
+	b.Record(float64(inputTokens+outputTokens) / 1_000_000.0 * defaultUSDPerMTok)
 }
 
 // SpentUSD returns the running spend.
