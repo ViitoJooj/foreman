@@ -21,6 +21,11 @@ func pick[T any](options ...T) T {
 	return options[rand.IntN(len(options))]
 }
 
+// RandomIntBetween returns a random int in the inclusive range [low, high].
+func RandomIntBetween(low, high int) int {
+	return low + rand.IntN(high-low+1)
+}
+
 // RandomUUID returns a fresh random UUID.
 func RandomUUID() uuid.UUID {
 	return uuid.NewV4()
