@@ -85,6 +85,57 @@ func apiErrorMessage(status string, body []byte) string {
 	return fmt.Sprintf("api error (%s)", status)
 }
 
+// createCompanyBody is the JSON payload for POST /api/v1/companies.
+type createCompanyBody struct {
+	Name      string `json:"name"`
+	Slug      string `json:"slug"`
+	RepoOwner string `json:"repo_owner"`
+	RepoName  string `json:"repo_name"`
+}
+
+// createAgentBody is the JSON payload for POST /api/v1/agents.
+type createAgentBody struct {
+	CompanyID string `json:"company_id"`
+	Name      string `json:"name"`
+	Role      string `json:"role"`
+}
+
+// createChannelBody is the JSON payload for POST /api/v1/channels.
+type createChannelBody struct {
+	CompanyID string `json:"company_id"`
+	Name      string `json:"name"`
+}
+
+// companyView mirrors the company JSON returned by the API.
+type companyView struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug"`
+	RepoOwner string    `json:"repo_owner"`
+	RepoName  string    `json:"repo_name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// agentView mirrors the agent JSON returned by the API.
+type agentView struct {
+	ID        string    `json:"id"`
+	CompanyID string    `json:"company_id"`
+	Name      string    `json:"name"`
+	Role      string    `json:"role"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// channelView mirrors the channel JSON returned by the API.
+type channelView struct {
+	ID        string    `json:"id"`
+	CompanyID string    `json:"company_id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 // createTaskBody is the JSON payload for POST /api/v1/tasks.
 type createTaskBody struct {
 	CompanyID   string `json:"company_id"`

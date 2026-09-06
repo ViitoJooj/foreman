@@ -35,7 +35,13 @@ func NewRootCmd() *cobra.Command {
 	root.PersistentFlags().StringVar(&g.apiKey, "api-key", os.Getenv(envAPIKey), "API key sent as the X-Api-Key header")
 	root.PersistentFlags().BoolVar(&g.json, "json", false, "print the raw JSON response")
 
-	root.AddCommand(newTaskCmd(g), newMessageCmd(g))
+	root.AddCommand(
+		newCompanyCmd(g),
+		newAgentCmd(g),
+		newChannelCmd(g),
+		newTaskCmd(g),
+		newMessageCmd(g),
+	)
 	return root
 }
 
