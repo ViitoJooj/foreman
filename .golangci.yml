@@ -55,6 +55,9 @@ linters:
       # e2e helpers shell out and drop errors on teardown paths.
       - path: testes/
         linters: [errcheck, gosec]
+      # Agent prompt strings are Portuguese (ASCII-folded); misspell only knows English.
+      - path: internal/orchestrator/prompts\.go
+        linters: [misspell]
 
 formatters:
   enable:
