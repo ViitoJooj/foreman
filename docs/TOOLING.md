@@ -27,14 +27,20 @@ Lint the e2e files too:
 golangci-lint run --build-tags=e2e
 ```
 
+### GNU Make
+
+- **Linux/macOS**: already present.
+- **Windows**: `winget install ezwinports.make` (static build, no MSYS/Cygwin
+  DLLs). Restart the shell afterwards so `make` is on `PATH`.
+
 ### A C compiler (for `make test`)
 
-`make test` runs `go test -race ./...`, and the race detector requires cgo, which
-requires a C compiler.
+`make test` runs `CGO_ENABLED=1 go test -race ./...`; the race detector needs cgo,
+which needs a C compiler on `PATH`.
 
 - **Linux/macOS**: gcc or clang (usually already present).
-- **Windows**: install [w64devkit](https://github.com/skeeto/w64devkit) or
-  TDM-GCC and make sure `gcc` is on `PATH`.
+- **Windows**: `winget install BrechtSanders.WinLibs.POSIX.UCRT` provides
+  `gcc`. ([w64devkit](https://github.com/skeeto/w64devkit) or TDM-GCC also work.)
 
 Without a C compiler the suite still runs, just without `-race`:
 
@@ -47,7 +53,9 @@ go test ./...
 - `make docker-build` / `make docker-up` build and run the API image.
 - `make test-e2e` starts a throwaway Postgres via
   [testcontainers](https://golang.testcontainers.org/); the Docker daemon must be
-  running. When it is not, the e2e suite skips cleanly instead of failing.
+  running. When it is not, the e2e suite skips cleanly instead of failing. If the
+  testcontainers reaper misbehaves on your Docker setup, export
+  `TESTCONTAINERS_RYUK_DISABLED=true`.
 - To run the e2e suite against an existing database instead of a container, set
   `E2E_DATABASE_URL` to a DSN whose schema already has `migrations/0001_init`
   applied.
