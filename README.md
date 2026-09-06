@@ -17,8 +17,9 @@ Phase 1 skeleton. What works end to end today:
   messages (with an SSE stream), and control commands, all under `/api/v1` and
   guarded by an `X-Api-Key` header.
 - **CLI** (`cmd/cli`, Cobra) — `foreman`, a pure HTTP client of the API:
-  `status`, `company`, `agent`, `channel` (incl. `channel tail`), `task`,
-  `message`, and `kill` / `pause` / `resume` / `command`.
+  `status`, `dashboard` (live TUI), `company`, `agent`, `channel` (incl.
+  `channel tail`), `task`, `message`, and `kill` / `pause` / `resume` /
+  `command`.
 - **Orchestrator** (`internal/orchestrator`) — runs in-process with the API when
   `ORCHESTRATOR_ENABLED=true`. Advances every actionable task one step per cycle,
   posts a status message on each transition, applies pending commands (kill /
@@ -31,8 +32,11 @@ Phase 1 skeleton. What works end to end today:
 - **Persistence** — Postgres/Supabase via `pgx` (`internal/adapters/driven/supabase`),
   schema in `migrations/`.
 
+- **TUI** — `foreman dashboard`, a read-only Bubble Tea view that polls the API.
+
 Not wired yet: the autonomous Task Creator loop, the sandbox (ephemeral Docker
-per task), the browser adapter, and the TUI dashboard.
+per task), a real browser adapter (`BrowserClient` is a placeholder), and
+`foreman auth login` for the OAuth flows.
 
 ## Quick start
 
