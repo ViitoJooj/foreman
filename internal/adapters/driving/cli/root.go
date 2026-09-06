@@ -36,6 +36,7 @@ func NewRootCmd() *cobra.Command {
 	root.PersistentFlags().BoolVar(&g.json, "json", false, "print the raw JSON response")
 
 	root.AddCommand(
+		newStatusCmd(g),
 		newCompanyCmd(g),
 		newAgentCmd(g),
 		newChannelCmd(g),
