@@ -55,6 +55,40 @@ func TestMessageHandlerPostRejectsInvalidChannelID(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
+func TestMessageHandlerStream(t *testing.T) {
+	a := newTestAPI(t)
+	channelID := testutil.RandomUUID()
+
+	live := make(chan domain.Message, 1)
+	a.msgBus.EXPECT().Subscribe(gomock.Any(), channelID).Return((<-chan domain.Message)(live), nil)
+	a.msgRepo.EXPECT().ListByChannel(gomock.Any(), channelID, 5).Return([]domain.Message{
+		{ID: testutil.RandomUUID(), ChannelID: channelID, Type: domain.MessageStatus, FromAgentID: testutil.RandomUUID(), Body: "old one"},
+	}, nil)
+
+	live <- domain.Message{
+		ID: testutil.RandomUUID(), ChannelID: channelID, Type: domain.MessageStatus,
+		FromAgentID: testutil.RandomUUID(), Body: "new one",
+	}
+	close(live) // ends the stream so the synchronous request returns
+
+	rec := a.do(t, http.MethodGet, "/api/v1/channels/"+channelID.String()+"/messages/stream?history=5", nil)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, "text/event-stream", rec.Header().Get("Content-Type"))
+	body := rec.Body.String()
+	require.Contains(t, body, "data: ")
+	require.Contains(t, body, "old one")
+	require.Contains(t, body, "new one")
+}
+
+func TestMessageHandlerStreamRejectsInvalidChannelID(t *testing.T) {
+	a := newTestAPI(t)
+
+	rec := a.do(t, http.MethodGet, "/api/v1/channels/"+testutil.RandomSlug()+"/messages/stream", nil)
+
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
 func TestMessageHandlerPostRejectsUnknownType(t *testing.T) {
 	a := newTestAPI(t)
 

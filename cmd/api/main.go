@@ -58,7 +58,7 @@ func run() error {
 		Agents:    http.NewAgentHandler(service.NewAgent(agents)),
 		Channels:  http.NewChannelHandler(service.NewChannel(channels)),
 		Tasks:     http.NewTaskHandler(service.NewCreateTask(tasks), service.NewListTasks(tasks)),
-		Messages:  http.NewMessageHandler(service.NewPostMessage(messages, messageBus)),
+		Messages:  http.NewMessageHandler(service.NewPostMessage(messages, messageBus), service.NewTailMessages(messages, messageBus)),
 		Commands:  http.NewCommandHandler(service.NewCommand(commands)),
 	})
 

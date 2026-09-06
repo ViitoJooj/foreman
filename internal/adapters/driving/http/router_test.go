@@ -51,7 +51,7 @@ func newTestAPI(t *testing.T) *testAPI {
 		Agents:    NewAgentHandler(service.NewAgent(a.agentRepo)),
 		Channels:  NewChannelHandler(service.NewChannel(a.channelRepo)),
 		Tasks:     NewTaskHandler(service.NewCreateTask(a.taskRepo), service.NewListTasks(a.taskRepo)),
-		Messages:  NewMessageHandler(service.NewPostMessage(a.msgRepo, a.msgBus)),
+		Messages:  NewMessageHandler(service.NewPostMessage(a.msgRepo, a.msgBus), service.NewTailMessages(a.msgRepo, a.msgBus)),
 		Commands:  NewCommandHandler(service.NewCommand(a.commandRepo)),
 	})
 	return a

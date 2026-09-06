@@ -35,6 +35,7 @@ func NewRouter(apiKey string, h Handlers) *gin.Engine {
 	v1.GET("/channels", h.Channels.List)
 	v1.GET("/channels/:id", h.Channels.Get)
 	v1.POST("/channels/:id/messages", h.Messages.Create)
+	v1.GET("/channels/:id/messages/stream", h.Messages.Stream)
 
 	v1.POST("/tasks", h.Tasks.Create)
 	v1.GET("/tasks", h.Tasks.List)
