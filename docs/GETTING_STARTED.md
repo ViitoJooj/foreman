@@ -98,6 +98,7 @@ All under `/api/v1`, guarded by the `X-Api-Key` header.
 | `POST /tasks` | `task create` |
 | `GET /tasks?company=<id>&state=<state>` | `task list` |
 | `POST /channels/:id/messages` | `message post` |
+| `GET /channels/:id/messages/stream` (SSE) | `channel tail` |
 | `POST /commands` | `kill` / `kill --panic` / `pause --agent` / `resume --agent` |
 | `GET /commands?status=<status>` | `command list` |
 | `GET /commands/:id` | `command get <id>` |
@@ -117,15 +118,25 @@ Each cycle it: applies pending commands (see below), then advances every task in
 an actionable state one step, posting a `status` message to the company channel
 on each transition and honouring `pause`/`kill`.
 
-The runners are **stubs** for now — every step reports success, so a `low` risk
-task walks `queued -> coding -> testing -> reviewing -> merged` on its own, and a
-`medium`/`high` risk task stops at `needs_human`. Real LLM-backed runners come
-later.
+Runners default to **stubs** — every step reports success, so a `low` risk task
+walks `queued -> coding -> testing -> reviewing -> merged` on its own, and a
+`medium`/`high` risk task stops at `needs_human`. Set `LLM_RUNNERS_ENABLED=true`
+(with a provider credential — see the table below) to use LLM-backed runners that
+decide the outcome and write the channel message.
 
-> A task created via `task create` starts in `created`, which the pipeline does
-> not pick up (that is the Task Creator's stage). Until the Task Creator runner
-> exists, move it into the queue manually:
-> `UPDATE tasks SET state = 'queued' WHERE id = '<TASK_ID>';`
+A task created via `task create` enters the pipeline in `queued` directly. The
+`created -> researching -> queued` states are reserved for the autonomous Task
+Creator, which is not wired yet.
+
+### LLM provider credentials (for `LLM_RUNNERS_ENABLED=true`)
+
+| Variable | Provider |
+| --- | --- |
+| `ANTHROPIC_API_KEY` or `ANTHROPIC_OAUTH_TOKEN` / `CLAUDE_CODE_OAUTH_TOKEN` | Claude |
+| `OPENAI_API_KEY` | OpenAI / Codex |
+| `DEEPSEEK_API_KEY` | DeepSeek |
+| `LLM_PROVIDER_ORDER` | fallback order, e.g. `anthropic,deepseek` (default `anthropic,openai,deepseek`) |
+| `LLM_MODEL_ANTHROPIC` / `LLM_MODEL_OPENAI` / `LLM_MODEL_DEEPSEEK` | per-provider model override |
 
 ## Control actions (kill switch)
 
