@@ -36,40 +36,47 @@ func newStatusCmd(g *globalFlags) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			ctx := cmd.Context()
 
-			companies, err := statusCompanies(ctx, client, company)
+			report, err := fetchStatusReport(cmd.Context(), client, company)
 			if err != nil {
 				return err
 			}
-
-			report := statusReport{}
-			for _, c := range companies {
-				cs := companyStatus{Company: c, States: map[string]int{}}
-
-				q := url.Values{"company": {c.ID}}.Encode()
-				if err := client.do(ctx, http.MethodGet, "/api/v1/tasks?"+q, nil, &cs.Tasks); err != nil {
-					return err
-				}
-				if err := client.do(ctx, http.MethodGet, "/api/v1/agents?"+q, nil, &cs.Agents); err != nil {
-					return err
-				}
-				for _, t := range cs.Tasks {
-					cs.States[t.State]++
-				}
-				report.Companies = append(report.Companies, cs)
-			}
-
-			if err := client.do(ctx, http.MethodGet, "/api/v1/commands?status=pending", nil, &report.PendingCommands); err != nil {
-				return err
-			}
-
 			return render(cmd, g, report, func() { printStatus(cmd, report) })
 		},
 	}
 
 	cmd.Flags().StringVar(&company, "company", "", "limit the snapshot to one company id")
 	return cmd
+}
+
+// fetchStatusReport gathers the snapshot used by `status` and the dashboard.
+func fetchStatusReport(ctx context.Context, client *apiClient, companyFilter string) (statusReport, error) {
+	companies, err := statusCompanies(ctx, client, companyFilter)
+	if err != nil {
+		return statusReport{}, err
+	}
+
+	report := statusReport{}
+	for _, c := range companies {
+		cs := companyStatus{Company: c, States: map[string]int{}}
+
+		q := url.Values{"company": {c.ID}}.Encode()
+		if err := client.do(ctx, http.MethodGet, "/api/v1/tasks?"+q, nil, &cs.Tasks); err != nil {
+			return statusReport{}, err
+		}
+		if err := client.do(ctx, http.MethodGet, "/api/v1/agents?"+q, nil, &cs.Agents); err != nil {
+			return statusReport{}, err
+		}
+		for _, t := range cs.Tasks {
+			cs.States[t.State]++
+		}
+		report.Companies = append(report.Companies, cs)
+	}
+
+	if err := client.do(ctx, http.MethodGet, "/api/v1/commands?status=pending", nil, &report.PendingCommands); err != nil {
+		return statusReport{}, err
+	}
+	return report, nil
 }
 
 func statusCompanies(ctx context.Context, client *apiClient, companyID string) ([]companyView, error) {

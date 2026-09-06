@@ -37,6 +37,7 @@ func NewRootCmd() *cobra.Command {
 
 	root.AddCommand(
 		newStatusCmd(g),
+		newDashboardCmd(g),
 		newCompanyCmd(g),
 		newAgentCmd(g),
 		newChannelCmd(g),
