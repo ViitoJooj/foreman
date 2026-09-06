@@ -98,6 +98,22 @@ All under `/api/v1`, guarded by the `X-Api-Key` header.
 | `POST /tasks` | `task create` |
 | `GET /tasks?company=<id>&state=<state>` | `task list` |
 | `POST /channels/:id/messages` | `message post` |
+| `POST /commands` | `kill` / `kill --panic` / `pause --agent` / `resume --agent` |
+| `GET /commands?status=<status>` | `command list` |
+| `GET /commands/:id` | `command get <id>` |
+
+## Control actions (kill switch)
+
+Issuing a command only **records** it as `pending`; the orchestrator (future
+work) applies pending commands on its next cycle.
+
+```bash
+./bin/cli kill --company <COMPANY_ID> --reason "manual stop"   # graceful stop
+./bin/cli kill --panic                                          # also close agent PRs / branches
+./bin/cli pause  --agent <AGENT_ID>
+./bin/cli resume --agent <AGENT_ID>
+./bin/cli command list                                          # audit (defaults to pending)
+```
 
 ## Run the API in a container instead
 
