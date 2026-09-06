@@ -1,0 +1,66 @@
+# golangci-lint v2 configuration. Run with `make lint` (or `golangci-lint run`).
+# If you are on golangci-lint v1, run `golangci-lint migrate` or upgrade to v2.
+version: "2"
+
+run:
+  # e2e files are behind the `e2e` build tag; lint them with:
+  #   golangci-lint run --build-tags=e2e
+  tests: true
+
+linters:
+  # `standard` = errcheck, govet, ineffassign, staticcheck, unused.
+  default: standard
+  enable:
+    - revive          # style: exported comments, naming, package comments
+    - misspell
+    - unconvert
+    - unparam
+    - nilerr          # returning nil after checking err != nil
+    - bodyclose       # http.Response.Body must be closed
+    - rowserrcheck    # sql.Rows.Err() must be checked
+    - sqlclosecheck   # sql.Rows / stmt must be closed
+    - gosec
+    - gocritic
+  settings:
+    errcheck:
+      # Writes to an already-acquired io.Writer (CLI output, tabwriter) do not
+      # carry actionable errors.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: context-as-argument
+        - name: error-strings
+        - name: errorf
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+    gosec:
+      excludes:
+        - G104   # unhandled errors are errcheck's job
+  exclusions:
+    generated: lax
+    rules:
+      # Test files: relax error-handling and security noise.
+      - path: _test\.go
+        linters: [errcheck, gosec, unparam, revive]
+      # Test-support package: random generators legitimately use math/rand/v2,
+      # generated mocks are not ours to lint.
+      - path: internal/testutil/
+        linters: [revive, unused, unparam, gosec]
+      # e2e helpers shell out and drop errors on teardown paths.
+      - path: testes/
+        linters: [errcheck, gosec]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/ViitoJooj/foreman
